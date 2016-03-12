@@ -1,0 +1,272 @@
+---
+title: "Un boulanger keeps the FN away"
+author: "Joël Gombin"
+date: "12 mars 2016"
+output: 
+  html_document: 
+    self_contained: no
+---
+
+Jérôme Fourquet, de l'IFOP, a publié récemment [une note](http://www.ifop.com/media/pressdocument/896-1-document_file.pdf) tendant à démontrer qu'en milieu rural, l'absence de commerces et de services, publics ou privés, favorise le vote FN. Elle a, à juste titre, rencontré un certain écho (voir par exemple [cette chronique](http://www.slate.fr/story/114931/vote-fn-vide-commercial-absence-services-publics)). Les résultats en sont assez fascinants : ainsi, à taille de commune égale, celles qui ont un bureau de poste votent en moyenne 3,4 % points en moins pour le FN... [Certains ont toutefois souligné](https://www.facebook.com/brustier/posts/10153605925367830?comment_id=10153606033837830&comment_tracking=%7B%22tn%22%3A%22R1%22%7D&pnref=story) que la question de la désertification commerciale, voire de la fermeture de services publics, se pose également dans les centres-villes. Y retrouverait-on la même logique ? Cela permettrait-il d'expliquer un vote FN élevé dans certains centres-villes de la région, à l'instar de Marseille ? 
+
+Pour le vérifier, j'ai regardé ce qu'il en est à Marseille. J'ai essayé de répliquer autant que possible le travail de Jérôme Fourquet, qui s'appuie sur 9 services et commerces : les bureaux de poste, les épiceries, les banques, les restaurants, les pharmacies, les médecins généralistes, les boucheries, les boulangeries et les relais de poste chez un commerçant. Cependant, il n'a pas été possible de répliquer à l'identique : là où Fourquet regarde si ces services sont présents ou pas dans une commune, dans le cas de Marseille, j'ai besoin de savoir précisément où ils sont situés. Je prends ainsi en compte la distance de chaque électeur à chaque service. De ce fait, je n'ai pas pu prendre en compte les banques ni les restaurants. J'ai aussi choisi de ne pas prendre en compte les relais de poste : ils ne remplissent pas la même fonction à la campagne et en ville. Cependant, on va le voir, cela ne nuit guère à la démonstration.
+
+Sur la base des six services retenus, j'ai calculé pour chaque adresse marseillaise un score d'accessibilité aux services. 
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,
+                      message = FALSE,
+                      warning = FALSE, 
+                      cache = TRUE)
+```
+
+
+```{r packages}
+library(tmap)
+library(dplyr)
+library(adresses2shape)
+library(SpatialPosition)
+library(ggplot2)
+library(spReapportion)
+library(viridis)
+library(readr)
+```
+
+```{r data}
+load("./Data/Marseille.Rdata")
+load("./Data/IRISFrance2014.Rdata")
+load("./Data/Reg15BVT1.Rdata")
+load("./Data/bpe14xy.Rdata")
+load("./Data/postes.Rdata")
+load("./Data/RP_2011_IRIS_CS1_P18ANS.Rdata")
+
+```
+
+```{r adresses}
+
+raw <- read_csv2("/media/Data/Dropbox/Collecte BV/listes/13/Marseille/2016/adressesetbv.csv")
+
+adresses <- raw %>% 
+  filter(Adresse != "") %>% 
+  mutate(Bureau = stringr::str_pad(Bureau, 4, "left", "0")) %>% 
+  mutate(Arrondissement = stringr::str_sub(Bureau, 1, 2)) %>%
+  mutate(insee = paste0("132", Arrondissement)) %>% 
+  count(Adresse, insee) %>% 
+  geocode("Adresse", "insee")
+
+adresses_ok <- adresses %>% 
+  filter(result_score > 0.6)
+
+
+```
+
+
+```{r carte1}
+
+fonds <- read_osm(bb(BVMarseille2015, ext = 1.2), minNumTiles = 10)
+
+BVMarseille2015@data$ID <- paste0("13055", BVMarseille2015@data$ID)
+
+Reg15ComT1BV <- Reg15ComT1BV %>% 
+  mutate(Abstention = Inscrits - Votants) %>% 
+  mutate(Blancs = Votants - Exprimés) %>% 
+  mutate_each(funs(. / Inscrits * 100), Abstention, Blancs, LCOM:LVEG)
+
+BVMarseille2015 <- BVMarseille2015 %>% append_data(Reg15ComT1BV, key.shp = "ID", key.data = "CodeBV")
+
+
+```
+
+```{r postes}
+
+adresses_shp <- SpatialPoints(adresses_ok[,c("longitude", "latitude")])
+adresses_shp <- SpatialPointsDataFrame(adresses_shp, as.data.frame(adresses_ok))
+proj4string(adresses_shp) <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+
+postes_mrs <- postes[postes@data$code_insee %in% c("13055", as.character(13201:13216)),]
+postes_mrs@data$valeur <- 1
+
+distmat <- CreateDistMatrix(knownpts = postes_mrs, unknownpts = adresses_shp, longlat = TRUE)
+
+potentiel_postes <- stewart(knownpts = postes_mrs, unknownpts = adresses_shp, matdist = distmat, varname = "valeur", longlat = TRUE, span = 0.6, beta = 3)
+
+```
+
+```{r epiceries}
+
+epiceries <- bpe14xySP[bpe14xySP@data$CodeInsee %in% c("13055", as.character(13201:13216)) & bpe14xySP@data$TypeEquipement %in% "B202",]
+
+epiceries@data$valeur <- 1
+
+epiceries <- spTransform(epiceries, CRSobj = CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+
+distmat <- CreateDistMatrix(knownpts = epiceries, unknownpts = adresses_shp, longlat = TRUE)
+
+potentiel_epiceries <- stewart(knownpts = epiceries, unknownpts = adresses_shp, matdist = distmat, varname = "valeur", longlat = TRUE, span = 0.1, beta = 3)
+
+```
+
+```{r boulangerie}
+
+boulangerie <- bpe14xySP[bpe14xySP@data$CodeInsee %in% c("13055", as.character(13201:13216)) & bpe14xySP@data$TypeEquipement %in% "B203",]
+
+boulangerie@data$valeur <- 1
+
+boulangerie <- spTransform(boulangerie, CRSobj = CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+
+distmat <- CreateDistMatrix(knownpts = boulangerie, unknownpts = adresses_shp, longlat = TRUE)
+
+potentiel_boulangerie <- stewart(knownpts = boulangerie, unknownpts = adresses_shp, matdist = distmat, varname = "valeur", longlat = TRUE, span = 0.1, beta = 3)
+
+```
+
+```{r pharmacie}
+
+pharmacie <- bpe14xySP[bpe14xySP@data$CodeInsee %in% c("13055", as.character(13201:13216)) & bpe14xySP@data$TypeEquipement %in% "D301",]
+
+pharmacie@data$valeur <- 1
+
+pharmacie <- spTransform(pharmacie, CRSobj = CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+
+distmat <- CreateDistMatrix(knownpts = pharmacie, unknownpts = adresses_shp, longlat = TRUE)
+
+potentiel_pharmacie <- stewart(knownpts = pharmacie, unknownpts = adresses_shp, matdist = distmat, varname = "valeur", longlat = TRUE, span = 0.3, beta = 3)
+
+```
+
+```{r medecin}
+
+medecin <- bpe14xySP[bpe14xySP@data$CodeInsee %in% c("13055", as.character(13201:13216)) & bpe14xySP@data$TypeEquipement %in% "D201",]
+
+medecin@data$valeur <- 1
+
+medecin <- spTransform(medecin, CRSobj = CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+
+distmat <- CreateDistMatrix(knownpts = medecin, unknownpts = adresses_shp, longlat = TRUE)
+
+potentiel_medecin <- stewart(knownpts = medecin, unknownpts = adresses_shp, matdist = distmat, varname = "valeur", longlat = TRUE, span = 0.3, beta = 3)
+
+```
+
+```{r boucher}
+
+boucher <- bpe14xySP[bpe14xySP@data$CodeInsee %in% c("13055", as.character(13201:13216)) & bpe14xySP@data$TypeEquipement %in% "B204",]
+
+boucher@data$valeur <- 1
+
+boucher <- spTransform(boucher, CRSobj = CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+
+distmat <- CreateDistMatrix(knownpts = boucher, unknownpts = adresses_shp, longlat = TRUE)
+
+potentiel_boucher <- stewart(knownpts = boucher, unknownpts = adresses_shp, matdist = distmat, varname = "valeur", longlat = TRUE, span = 0.3, beta = 3)
+
+```
+
+```{r potentiels}
+
+normalize <- function(x) (x - mean(x)) / sd(x)
+
+adresses_ok$potentiel_postes <- normalize(potentiel_postes$OUTPUT)
+adresses_ok$potentiel_boucher <- normalize(potentiel_boucher$OUTPUT)
+adresses_ok$potentiel_medecin <- normalize(potentiel_medecin$OUTPUT)
+adresses_ok$potentiel_pharmacie <- normalize(potentiel_pharmacie$OUTPUT)
+adresses_ok$potentiel_boulangerie <- normalize(potentiel_boulangerie$OUTPUT)
+adresses_ok$potentiel_epiceries <- normalize(potentiel_epiceries$OUTPUT)
+
+adresses_ok <- adresses_ok %>% 
+  mutate(potentiel_total = potentiel_postes + potentiel_boucher + potentiel_medecin + potentiel_pharmacie + potentiel_boulangerie + potentiel_epiceries)
+
+adresses_ok <- left_join(adresses_ok, raw %>% distinct(Adresse)) %>% 
+  mutate(Bureau = paste0("13055", stringr::str_pad(Bureau, width = 4, pad = "0"))) %>% 
+  left_join(Reg15ComT1BV %>% dplyr::select(CodeBV, LFN), by = c("Bureau" = "CodeBV"))
+
+
+```
+
+La carte ci-dessous montre la répartition de cet indice (plus il est rouge, mieux on est desservi en services et commerces). On identifie très bien l'oposition entre le centre-ville et la périphérie de la ville. 
+
+
+```{r carte_potentiel}
+adresses_shp <- SpatialPoints(adresses_ok[,c("longitude", "latitude")])
+adresses_shp <- SpatialPointsDataFrame(adresses_shp, as.data.frame(adresses_ok))
+adresses_shp$potentiel_total <- log(adresses_shp$potentiel_total - min(adresses_shp$potentiel_total) + 0.1)
+proj4string(adresses_shp) <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+
+tm_shape(fonds) +
+  tm_raster(alpha = 0.8) +
+tm_shape(adresses_shp) +
+  tm_bubbles(col = "potentiel_total", alpha = 0.5, size = 0.05, style = "quantile", n = 6, palette = "-RdBu") +
+tm_layout(legend.show = FALSE, title = "Proximité des services") +
+  tm_credits("Réalisation : Joël Gombin pour Marsactu")
+
+
+```
+
+Et cette carte n'est pas sans rappeler celle du vote FN, par exemple au premier tour des dernières élections régionales.
+
+```{r carte_FN}
+
+tm_shape(fonds)+
+  tm_raster(alpha = 0.8) +
+tm_shape(BVMarseille2015) +
+  tm_fill(col = "LFN", palette = rev(viridis(6, option = "A")), title = "Vote FN en % des inscrits", legend.format = list(text.separator = "à")) +
+  tm_layout(legend.position = c("left", "bottom")) +
+  tm_credits("Réalisation : Joël Gombin pour Marsactu")
+
+```
+
+
+De fait, si on compare, bureau de vote par bureau de vote, degré d'accessibilité des services et vote FN, on constate que la corrélation est très nette. Dans les bureaux les moins biens desservis, le vote FN s'établit en moyenne autour de 20 % des inscrits ; dans les bureaux les mieux desservis, il passe en-dessous de 10 %. Ce n'est bien sûr pas le seul facteur qui joue, et on observe donc des variations, mais la relation est très nette. 
+
+```{r scatterplot}
+adresses_lm <- adresses_ok %>% 
+  group_by(Bureau) %>% 
+  summarise_each(funs(weighted.mean(., w = n)), potentiel_postes:potentiel_total, LFN) %>% 
+  mutate(potentiel_total = log(potentiel_total - min(potentiel_total) + 0.1) - 1)
+
+adresses_lm %>% 
+  ggplot(aes(potentiel_total, LFN)) +
+  geom_point(alpha = 0.1) +
+#  scale_y_log10() +
+  geom_smooth() +
+  theme_bw() +
+  xlab(" -       Desserte en services       +") +
+  ylab("Vote FN en % des inscrits")
+```
+
+On pourrait toutefois penser qu'il ne s'agit là que d'un effet d'optique, dû à la composition sociale des bureaux de vote : les bureaux de vote les plus aisés seraient aussi, tendanciellement, les mieux desservis, et dès lors la corrélation entre vote FN et desserte cacherait l'effet de la composition sociale de la population. En fait, il n'en est rien. D'abord parce que la corrélation entre la desserte en services d'un quartier et sa composition sociale est en réalité très faible, voire nulle. Ensuite parce que lorsque l'on construit un modèle statistique (modèle de régression) prenant en compte aussi bien la composition socioprofessionnelle de la population que la desserte en services et commerces, l'effet de cette dernière demeure très important -- globalement d'une importance du même ordre de grandeur que l'effet de la composition sociale. 
+
+```{r regression}
+
+IRIS <- spTransform(IRIS, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+
+cs_bv <- spReapportion(old_geom = IRIS[IRIS@data$DEPCOM %in% c("13055", 13201:13216),], new_geom = BVMarseille2015[gIsValid(BVMarseille2015, byid = TRUE),], data = cs1_sex_iris_rp2011, old_ID = "DCOMIRIS", new_ID = "ID", mode = "count", data_ID = "iris")
+
+cs_bv <- cs_bv %>%
+  mutate(CS1 = `F_Agriculteurs` + `H_Agriculteurs`,
+         CS2 = `F_Artisans, commerçants, chefs d'entreprise` + `H_Artisans, commerçants, chefs d'entreprise`,
+         CS3 = `F_Cadres et prof. intellectuelles supérieures` + `H_Cadres et prof. intellectuelles supérieures`,
+         CS4 = `F_Prof. intermédiaires` + `H_Prof. intermédiaires`,
+         CS5 = F_Employés + H_Employés,
+         CS6 = F_Ouvriers + H_Ouvriers,
+         CS7 = F_Retraités + H_Retraités,
+         CS8 = `F_Autres inactifs` + `H_Autres inactifs`,
+         total = CS1 + CS2 + CS3 + CS4 + CS5 + CS6 + CS7 + CS8) %>% 
+  mutate_each(funs(. / total * 100), CS1:CS8)
+
+adresses_lm <- adresses_ok %>% 
+  group_by(Bureau) %>% 
+  summarise_each(funs(weighted.mean(., w = n)), potentiel_postes:potentiel_total, LFN) %>% 
+  mutate(potentiel_total = potentiel_total - min(potentiel_total) + 0.1) %>% 
+  ungroup %>% 
+  left_join(cs_bv, by = c("Bureau" = "ID"))
+
+modele1 <- lm(LFN ~ CS2 + CS3 + CS4 + CS5 + CS6 + CS7 + potentiel_total, data = adresses_lm)
+modele2 <- lm(LFN ~ potentiel_postes + potentiel_epiceries + potentiel_boucher + potentiel_boulangerie + potentiel_pharmacie + potentiel_medecin, data = adresses_lm)
+
+```
+
+Peut-on dire que la desserte en services est une cause du vote FN ? Il faut sans doute rester prudent. Il est en effet possible que les électeurs FN choisissent, plus que d'autres, de s'installer dans des quartiers dans lesquels la desserte est faible, par exemple parce qu'ils préfèrent un habitat dispersé, peu dense, qui assure une plus grande tranquillité mais est peu propice à l'installation de ces services et commerces. Il est également possible d'imaginer que les électeurs FN soient de moins bons clients que d'autres, et que dès lors là où ils sont surreprésentés ces services auraient plus de mal à se maintenir. Mais il reste que, compte tenu de l'ampleur des effets observés, le lien entre vote FN et desserte en services et commerces du quotidien semble bien attesté. Ce n'est donc pas que dans les mondes ruraux que ce lien existe; au cœur même d'une grande ville comme Marseille, on l'observe également. Contre Ravier, des épiciers ?
+
+_Comme d'habitude, le code et les données de cette chronique sont [disponibles sur Github]()._
