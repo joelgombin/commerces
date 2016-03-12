@@ -4,6 +4,7 @@ author: "Joël Gombin"
 date: "12 mars 2016"
 output: 
   html_document: 
+    keep_md: yes
     self_contained: no
 ---
 
@@ -269,4 +270,4 @@ modele2 <- lm(LFN ~ potentiel_postes + potentiel_epiceries + potentiel_boucher +
 
 Peut-on dire que la desserte en services est une cause du vote FN ? Il faut sans doute rester prudent. Il est en effet possible que les électeurs FN choisissent, plus que d'autres, de s'installer dans des quartiers dans lesquels la desserte est faible, par exemple parce qu'ils préfèrent un habitat dispersé, peu dense, qui assure une plus grande tranquillité mais est peu propice à l'installation de ces services et commerces. Il est également possible d'imaginer que les électeurs FN soient de moins bons clients que d'autres, et que dès lors là où ils sont surreprésentés ces services auraient plus de mal à se maintenir. Mais il reste que, compte tenu de l'ampleur des effets observés, le lien entre vote FN et desserte en services et commerces du quotidien semble bien attesté. Ce n'est donc pas que dans les mondes ruraux que ce lien existe; au cœur même d'une grande ville comme Marseille, on l'observe également. Contre Ravier, des épiciers ?
 
-_Comme d'habitude, le code et les données de cette chronique sont [disponibles sur Github]()._
+_Comme d'habitude, le code et les données de cette chronique sont [disponibles sur Github](https://github.com/joelgombin/commerces)._
