@@ -81,7 +81,7 @@ BVMarseille2015 <- BVMarseille2015 %>% append_data(Reg15ComT1BV, key.shp = "ID",
 
 ```{r postes}
 
-adresses_shp <- SpatialPoints(adresses_ok[,c("longitude", "latitude")])
+adresses_shp <- SpatialPoints(as.data.frame(adresses_ok[,c("longitude", "latitude")]))
 adresses_shp <- SpatialPointsDataFrame(adresses_shp, as.data.frame(adresses_ok))
 proj4string(adresses_shp) <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
 
@@ -189,7 +189,7 @@ La carte ci-dessous montre la répartition de cet indice (plus il est rouge, mie
 
 
 ```{r carte_potentiel}
-adresses_shp <- SpatialPoints(adresses_ok[,c("longitude", "latitude")])
+adresses_shp <- SpatialPoints(as.data.frame(adresses_ok[,c("longitude", "latitude")]))
 adresses_shp <- SpatialPointsDataFrame(adresses_shp, as.data.frame(adresses_ok))
 adresses_shp$potentiel_total <- log(adresses_shp$potentiel_total - min(adresses_shp$potentiel_total) + 0.1)
 proj4string(adresses_shp) <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
