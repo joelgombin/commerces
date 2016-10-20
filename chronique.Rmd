@@ -24,11 +24,13 @@ knitr::opts_chunk$set(echo = FALSE,
 
 
 ```{r packages}
+install.packages(c("tmap", "tidyverse", "SpatialPosition", "viridis", "devtools"))
+devtools::install_github("joelgombin/adresses2shape")
+devtools::install_github("joelgombin/spReapportion")
+library(tidyverse)
 library(tmap)
-library(dplyr)
 library(adresses2shape)
 library(SpatialPosition)
-library(ggplot2)
 library(spReapportion)
 library(viridis)
 library(readr)
@@ -64,7 +66,6 @@ adresses_ok <- adresses %>%
 
 
 ```{r carte1}
-
 fonds <- read_osm(bb(BVMarseille2015, ext = 1.2), minNumTiles = 10)
 
 BVMarseille2015@data$ID <- paste0("13055", BVMarseille2015@data$ID)
@@ -74,7 +75,7 @@ Reg15ComT1BV <- Reg15ComT1BV %>%
   mutate(Blancs = Votants - Exprimés) %>% 
   mutate_each(funs(. / Inscrits * 100), Abstention, Blancs, LCOM:LVEG)
 
-BVMarseille2015 <- BVMarseille2015 %>% append_data(Reg15ComT1BV, key.shp = "ID", key.data = "CodeBV")
+BVMarseille2015 <- BVMarseille2015 %>% append_data(as.data.frame(Reg15ComT1BV), key.shp = "ID", key.data = "CodeBV")
 
 
 ```
@@ -88,9 +89,9 @@ proj4string(adresses_shp) <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +
 postes_mrs <- postes[postes@data$code_insee %in% c("13055", as.character(13201:13216)),]
 postes_mrs@data$valeur <- 1
 
-distmat <- CreateDistMatrix(knownpts = postes_mrs, unknownpts = adresses_shp, longlat = TRUE)
+distmat <- CreateDistMatrix(knownpts = postes_mrs, unknownpts = adresses_shp)
 
-potentiel_postes <- stewart(knownpts = postes_mrs, unknownpts = adresses_shp, matdist = distmat, varname = "valeur", longlat = TRUE, span = 0.6, beta = 3)
+potentiel_postes <- stewart(knownpts = postes_mrs, unknownpts = adresses_shp, matdist = distmat, varname = "valeur", span = 500, beta = 3)
 
 ```
 
@@ -102,9 +103,9 @@ epiceries@data$valeur <- 1
 
 epiceries <- spTransform(epiceries, CRSobj = CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
 
-distmat <- CreateDistMatrix(knownpts = epiceries, unknownpts = adresses_shp, longlat = TRUE)
+distmat <- CreateDistMatrix(knownpts = epiceries, unknownpts = adresses_shp)
 
-potentiel_epiceries <- stewart(knownpts = epiceries, unknownpts = adresses_shp, matdist = distmat, varname = "valeur", longlat = TRUE, span = 0.1, beta = 3)
+potentiel_epiceries <- stewart(knownpts = epiceries, unknownpts = adresses_shp, matdist = distmat, varname = "valeur", span = 500, beta = 3)
 
 ```
 
@@ -116,9 +117,9 @@ boulangerie@data$valeur <- 1
 
 boulangerie <- spTransform(boulangerie, CRSobj = CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
 
-distmat <- CreateDistMatrix(knownpts = boulangerie, unknownpts = adresses_shp, longlat = TRUE)
+distmat <- CreateDistMatrix(knownpts = boulangerie, unknownpts = adresses_shp)
 
-potentiel_boulangerie <- stewart(knownpts = boulangerie, unknownpts = adresses_shp, matdist = distmat, varname = "valeur", longlat = TRUE, span = 0.1, beta = 3)
+potentiel_boulangerie <- stewart(knownpts = boulangerie, unknownpts = adresses_shp, matdist = distmat, varname = "valeur", span = 500, beta = 3)
 
 ```
 
@@ -130,9 +131,9 @@ pharmacie@data$valeur <- 1
 
 pharmacie <- spTransform(pharmacie, CRSobj = CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
 
-distmat <- CreateDistMatrix(knownpts = pharmacie, unknownpts = adresses_shp, longlat = TRUE)
+distmat <- CreateDistMatrix(knownpts = pharmacie, unknownpts = adresses_shp)
 
-potentiel_pharmacie <- stewart(knownpts = pharmacie, unknownpts = adresses_shp, matdist = distmat, varname = "valeur", longlat = TRUE, span = 0.3, beta = 3)
+potentiel_pharmacie <- stewart(knownpts = pharmacie, unknownpts = adresses_shp, matdist = distmat, varname = "valeur", span = 500, beta = 3)
 
 ```
 
@@ -144,9 +145,9 @@ medecin@data$valeur <- 1
 
 medecin <- spTransform(medecin, CRSobj = CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
 
-distmat <- CreateDistMatrix(knownpts = medecin, unknownpts = adresses_shp, longlat = TRUE)
+distmat <- CreateDistMatrix(knownpts = medecin, unknownpts = adresses_shp)
 
-potentiel_medecin <- stewart(knownpts = medecin, unknownpts = adresses_shp, matdist = distmat, varname = "valeur", longlat = TRUE, span = 0.3, beta = 3)
+potentiel_medecin <- stewart(knownpts = medecin, unknownpts = adresses_shp, matdist = distmat, varname = "valeur", span = 500, beta = 3)
 
 ```
 
@@ -158,9 +159,10 @@ boucher@data$valeur <- 1
 
 boucher <- spTransform(boucher, CRSobj = CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
 
-distmat <- CreateDistMatrix(knownpts = boucher, unknownpts = adresses_shp, longlat = TRUE)
+distmat <- CreateDistMatrix(knownpts = boucher, unknownpts = adresses_shp)
 
-potentiel_boucher <- stewart(knownpts = boucher, unknownpts = adresses_shp, matdist = distmat, varname = "valeur", longlat = TRUE, span = 0.3, beta = 3)
+potentiel_boucher <- stewart(knownpts = boucher, unknownpts = adresses_shp, matdist = distmat, varname = "valeur", span = 500
+                             , beta = 3)
 
 ```
 
@@ -178,7 +180,8 @@ adresses_ok$potentiel_epiceries <- normalize(potentiel_epiceries$OUTPUT)
 adresses_ok <- adresses_ok %>% 
   mutate(potentiel_total = potentiel_postes + potentiel_boucher + potentiel_medecin + potentiel_pharmacie + potentiel_boulangerie + potentiel_epiceries)
 
-adresses_ok <- left_join(adresses_ok, raw %>% distinct(Adresse)) %>% 
+
+adresses_ok <- left_join(adresses_ok, raw %>% distinct(Adresse, .keep_all = TRUE)) %>% 
   mutate(Bureau = paste0("13055", stringr::str_pad(Bureau, width = 4, pad = "0"))) %>% 
   left_join(Reg15ComT1BV %>% dplyr::select(CodeBV, LFN), by = c("Bureau" = "CodeBV"))
 
@@ -193,6 +196,7 @@ adresses_shp <- SpatialPoints(as.data.frame(adresses_ok[,c("longitude", "latitud
 adresses_shp <- SpatialPointsDataFrame(adresses_shp, as.data.frame(adresses_ok))
 adresses_shp$potentiel_total <- log(adresses_shp$potentiel_total - min(adresses_shp$potentiel_total) + 0.1)
 proj4string(adresses_shp) <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+
 
 tm_shape(fonds) +
   tm_raster(alpha = 0.8) +
