@@ -8,17 +8,18 @@
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="pandoc" />
 
+
 <meta name="author" content="Joël Gombin" />
 
 
 <title>Un boulanger keeps the FN away</title>
 
-<script src="chronique_files/jquery-1.11.0/jquery.min.js"></script>
+<script src="chronique_files/jquery-1.11.3/jquery.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<link href="chronique_files/bootstrap-3.3.1/css/bootstrap.min.css" rel="stylesheet" />
-<script src="chronique_files/bootstrap-3.3.1/js/bootstrap.min.js"></script>
-<script src="chronique_files/bootstrap-3.3.1/shim/html5shiv.min.js"></script>
-<script src="chronique_files/bootstrap-3.3.1/shim/respond.min.js"></script>
+<link href="chronique_files/bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
+<script src="chronique_files/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="chronique_files/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="chronique_files/bootstrap-3.3.5/shim/respond.min.js"></script>
 
 <style type="text/css">code{white-space: pre;}</style>
 <link rel="stylesheet"
@@ -40,6 +41,34 @@ if (window.hljs && document.readyState && document.readyState === "complete") {
 
 
 
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
 </head>
 
 <body>
@@ -54,18 +83,45 @@ code {
   color: inherit;
   background-color: rgba(0, 0, 0, 0.04);
 }
-img { 
-  max-width:100%; 
-  height: auto; 
+img {
+  max-width:100%;
+  height: auto;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+button.code-folding-btn:focus {
+  outline: none;
 }
 </style>
+
+
+
 <div class="container-fluid main-container">
 
+<!-- tabsets -->
+<script src="chronique_files/navigation-1.1/tabsets.js"></script>
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+</script>
 
-<div id="header">
-<h1 class="title">Un boulanger keeps the FN away</h1>
+<!-- code folding -->
+
+
+
+
+
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">Un boulanger keeps the FN away</h1>
 <h4 class="author"><em>Joël Gombin</em></h4>
 <h4 class="date"><em>12 mars 2016</em></h4>
+
 </div>
 
 
@@ -73,14 +129,16 @@ img {
 <p>Pour le vérifier, j’ai regardé ce qu’il en est à Marseille. J’ai essayé de répliquer autant que possible le travail de Jérôme Fourquet, qui s’appuie sur 9 services et commerces : les bureaux de poste, les épiceries, les banques, les restaurants, les pharmacies, les médecins généralistes, les boucheries, les boulangeries et les relais de poste chez un commerçant. Cependant, il n’a pas été possible de répliquer à l’identique : là où Fourquet regarde si ces services sont présents ou pas dans une commune, dans le cas de Marseille, j’ai besoin de savoir précisément où ils sont situés. Je prends ainsi en compte la distance de chaque électeur à chaque service. De ce fait, je n’ai pas pu prendre en compte les banques ni les restaurants. J’ai aussi choisi de ne pas prendre en compte les relais de poste : ils ne remplissent pas la même fonction à la campagne et en ville. Cependant, on va le voir, cela ne nuit guère à la démonstration.</p>
 <p>Sur la base des six services retenus, j’ai calculé pour chaque adresse marseillaise un score d’accessibilité aux services.</p>
 <p>La carte ci-dessous montre la répartition de cet indice (plus il est rouge, mieux on est desservi en services et commerces). On identifie très bien l’oposition entre le centre-ville et la périphérie de la ville.</p>
-<p><img src="chronique_files/figure-html/carte_potentiel-1.png" title="" alt="" width="672" /></p>
+<p><img src="chronique_files/figure-html/carte_potentiel-1.png" /><!-- --></p>
 <p>Et cette carte n’est pas sans rappeler celle du vote FN, par exemple au premier tour des dernières élections régionales.</p>
-<p><img src="chronique_files/figure-html/carte_FN-1.png" title="" alt="" width="672" /></p>
+<p><img src="chronique_files/figure-html/carte_FN-1.png" /><!-- --></p>
 <p>De fait, si on compare, bureau de vote par bureau de vote, degré d’accessibilité des services et vote FN, on constate que la corrélation est très nette. Dans les bureaux les moins biens desservis, le vote FN s’établit en moyenne autour de 20 % des inscrits ; dans les bureaux les mieux desservis, il passe en-dessous de 10 %. Ce n’est bien sûr pas le seul facteur qui joue, et on observe donc des variations, mais la relation est très nette.</p>
-<p><img src="chronique_files/figure-html/scatterplot-1.png" title="" alt="" width="672" /></p>
+<p><img src="chronique_files/figure-html/scatterplot-1.png" /><!-- --></p>
 <p>On pourrait toutefois penser qu’il ne s’agit là que d’un effet d’optique, dû à la composition sociale des bureaux de vote : les bureaux de vote les plus aisés seraient aussi, tendanciellement, les mieux desservis, et dès lors la corrélation entre vote FN et desserte cacherait l’effet de la composition sociale de la population. En fait, il n’en est rien. D’abord parce que la corrélation entre la desserte en services d’un quartier et sa composition sociale est en réalité très faible, voire nulle. Ensuite parce que lorsque l’on construit un modèle statistique (modèle de régression) prenant en compte aussi bien la composition socioprofessionnelle de la population que la desserte en services et commerces, l’effet de cette dernière demeure très important – globalement d’une importance du même ordre de grandeur que l’effet de la composition sociale.</p>
 <p>Peut-on dire que la desserte en services est une cause du vote FN ? Il faut sans doute rester prudent. Il est en effet possible que les électeurs FN choisissent, plus que d’autres, de s’installer dans des quartiers dans lesquels la desserte est faible, par exemple parce qu’ils préfèrent un habitat dispersé, peu dense, qui assure une plus grande tranquillité mais est peu propice à l’installation de ces services et commerces. Il est également possible d’imaginer que les électeurs FN soient de moins bons clients que d’autres, et que dès lors là où ils sont surreprésentés ces services auraient plus de mal à se maintenir. Mais il reste que, compte tenu de l’ampleur des effets observés, le lien entre vote FN et desserte en services et commerces du quotidien semble bien attesté. Ce n’est donc pas que dans les mondes ruraux que ce lien existe; au cœur même d’une grande ville comme Marseille, on l’observe également. Contre Ravier, des épiciers ?</p>
 <p><em>Comme d’habitude, le code et les données de cette chronique sont <a href="https://github.com/joelgombin/commerces">disponibles sur Github</a>.</em></p>
+
+
 
 
 </div>
@@ -91,6 +149,7 @@ img {
 $(document).ready(function () {
   $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
 });
+
 
 </script>
 

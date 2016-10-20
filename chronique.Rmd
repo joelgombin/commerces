@@ -24,11 +24,13 @@ knitr::opts_chunk$set(echo = FALSE,
 
 
 ```{r packages}
+install.packages(c("tmap", "tidyverse", "SpatialPosition", "viridis", "devtools"))
+devtools::install_github("joelgombin/adresses2shape")
+devtools::install_github("joelgombin/spReapportion")
+library(tidyverse)
 library(tmap)
-library(dplyr)
 library(adresses2shape)
 library(SpatialPosition)
-library(ggplot2)
 library(spReapportion)
 library(viridis)
 library(readr)
