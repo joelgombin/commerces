@@ -48,7 +48,7 @@ load("./Data/RP_2011_IRIS_CS1_P18ANS.Rdata")
 
 ```{r adresses}
 
-raw <- read_csv2("/media/Data/Dropbox/Collecte BV/listes/13/Marseille/2016/adressesetbv.csv")
+raw <- read_csv2("./Data/adressesetbv.csv")
 
 adresses <- raw %>% 
   filter(Adresse != "") %>% 
